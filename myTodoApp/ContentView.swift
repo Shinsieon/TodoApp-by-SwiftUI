@@ -9,46 +9,94 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var todoBtnOn:Bool = true
+    @State private var toDos : [String] = ["todo"]
+    @State private var doneTodos : [String] = []
+    @State private var toDoText : String = ""
+    @State private var presentAlert = false
     
     var body: some View {
         ZStack{
             Color(hex:"040403").ignoresSafeArea()
-            VStack {
-                HStack{
+            VStack{
+                HStack(alignment: .top){
                     Button("Todo", action:{
-                        self.todoBtnOn.toggle()
-                    })
-                    .buttonStyle(OnTopButtonStyle())
+                        self.todoBtnOn = true
+                    }).buttonStyle(TopButtonStyle(onTodo : self.todoBtnOn))
+                    
                     Button("Done", action:{
-                        todoBtnOn = false
+                        self.todoBtnOn = false
                     })
+                    .buttonStyle(TopButtonStyle(onTodo : !self.todoBtnOn))
+                    
                     Spacer()
                 }
                 .padding()
+                if(!toDos.isEmpty){
+                    List(toDos, id : \.self) {toDo in
+                        Text(toDo)
+                            .frame(height: 80, alignment: .leading)
+                            .font(.system(size: 20))
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .foregroundColor(Color(hex : "FFE189"))
+                            )
+                            .listRowInsets(.init(top: 0, leading: 20, bottom: 0, trailing: 10))
+                    }
+                    .background(Color(hex:"040403"))
+                    .padding(.horizontal, 20)
+                    .scrollContentBackground(.hidden)
+                    .listStyle(PlainListStyle())
+                }else{
+                    Text("Nothing to do")
+                        .foregroundColor(Color.white)
+                        .font(.system(size:30))
+                        .frame(height : 500)
+                }
+                Spacer()
             }
+            
+            .padding(.bottom)
+            Button(action:{
+                presentAlert.toggle()
+            })
+            {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size : 80))
+                    .foregroundColor(Color(hex:"F9D869"))
+                    .shadow(color : .gray, radius: 0.2, x:1,y:1)
+                    .padding()
+            }
+            .alert("할일을 적어주세요", isPresented: $presentAlert, actions:{
+                TextField("", text: $toDoText)
+                Button("Cancel", role: .cancel, action:{toDoText=""})
+                Button("OK", action:{
+                    if(!toDos.contains(toDoText)) {
+                        addTodo(_t : toDoText)
+                        toDoText=""
+                    }else {toDoText = ""}
+                })
+            })
+            .frame(maxHeight: .infinity, alignment: .bottom)
+            
         }
-        
+    }
+    func addTodo(_t : String){
+        toDos.append(_t)
     }
 }
 
-struct OnTopButtonStyle : ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-        //F9D869
-            .padding()
-            .clipShape(Capsule())
-            .font(.system(size: 25))
-            .scaleEffect(configuration.isPressed ? 0.88 : 1.0)
-    }
-}
-struct OffTopButtonStyle : ButtonStyle {
+struct TopButtonStyle : ButtonStyle {
+    let onTodo :Bool
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .padding()
-            .background(Color(.white))
-            .clipShape(Capsule())
             .font(.system(size: 25))
+            .foregroundColor(onTodo ? Color(hex:"040403") : Color(hex:"F9D869"))
+            .background(onTodo ? Color(hex: "F9D869") : Color(hex:"040403"))
             .scaleEffect(configuration.isPressed ? 0.88 : 1.0)
+            .clipShape(Capsule())
+
     }
 }
 extension Color {

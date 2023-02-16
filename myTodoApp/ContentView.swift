@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var todoBtnOn:Bool = true
-    @State private var toDos : [String] = ["todo"]
+    @State private var toDos : [String] = ["todo","23"]
     @State private var doneTodos : [String] = []
     @State private var toDoText : String = ""
     @State private var presentAlert = false
@@ -32,26 +32,38 @@ struct ContentView: View {
                 }
                 .padding()
                 if(!toDos.isEmpty){
-                    List(toDos, id : \.self) {toDo in
-                        Text(toDo)
-                            .frame(height: 80, alignment: .leading)
-                            .font(.system(size: 20))
-                            .listRowSeparator(.hidden)
+                    List {
+                        ForEach(toDos, id : \.self) { toDo in
+                            HStack{
+                                Button(action:{
+                                    print(toDos.firstIndex(of: toDo)!)
+                                }){
+                                    Text(toDo)
+                                        .foregroundColor(Color(hex:"040403"))
+                                }
+                                .font(.system(size: 20))
+                                .frame(height: 90, alignment: .leading)
+                            }
+                            .contentShape(Rectangle())
                             .listRowBackground(
                                 RoundedRectangle(cornerRadius: 20)
-                                    .foregroundColor(Color(hex : "FFE189"))
+                                    .foregroundColor(Color(hex : "F7E9B5"))
+                                    .padding(.vertical,10)
                             )
-                            .listRowInsets(.init(top: 0, leading: 20, bottom: 0, trailing: 10))
+                            .listRowSeparator(.hidden)
+                            .onTapGesture {
+                                
+                            }
+                        }
                     }
-                    .background(Color(hex:"040403"))
                     .padding(.horizontal, 20)
-                    .scrollContentBackground(.hidden)
                     .listStyle(PlainListStyle())
                 }else{
                     Text("Nothing to do")
                         .foregroundColor(Color.white)
                         .font(.system(size:30))
                         .frame(height : 500)
+                        
                 }
                 Spacer()
             }

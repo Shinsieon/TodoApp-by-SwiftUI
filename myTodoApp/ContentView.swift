@@ -9,10 +9,11 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var todoBtnOn:Bool = true
-    @State private var toDos : [String] = ["todo","23"]
+    @State private var toDos = UserDefaults.standard.array(forKey: "storedTodos") as? [String] ?? []
     @State private var doneTodos : [String] = []
     @State private var toDoText : String = ""
     @State private var presentAlert = false
+    @GestureState private var isDetectingLongPress = false
     
     var body: some View {
         ZStack{
@@ -33,7 +34,7 @@ struct ContentView: View {
                 .padding()
                 if(!toDos.isEmpty){
                     List {
-                        ForEach(toDos, id : \.self) { toDo in
+                        ForEach(todoBtnOn ? toDos : doneTodos, id : \.self) { toDo in
                             HStack{
                                 Button(action:{
                                     print(toDos.firstIndex(of: toDo)!)
@@ -43,17 +44,39 @@ struct ContentView: View {
                                 }
                                 .font(.system(size: 20))
                                 .frame(height: 90, alignment: .leading)
+                                .scaleEffect(isDetectingLongPress ? 2: 1)
+                                .animation(.spring(response:0.4, dampingFraction: 0.6))
+                                .gesture(
+                                    LongPressGesture(minimumDuration: 0.5)
+                                        .updating($isDetectingLongPress){currentState, gestureState, transaction in
+                                            gestureState = currentState
+                                        }
+                                        .onEnded{ value in
+                                            print("fuck")
+                                        }
+                                )
+                                
+                                Spacer()
+                                Button(action:{
+                                    print("trash button")
+                                    toDos.remove(at:toDos.firstIndex(of: toDo)!)
+                                    UserDefaults.standard.set(toDos, forKey :"storedTodos")
+                                }){
+                                    Image(systemName: "trash")
+                                        .font(.system(size : 20))
+                                        .foregroundColor(Color(hex: "040403"))
+                                        .shadow(color : .gray, radius: 0.2, x:1,y:1)
+
+                                }
+                                .animation(.easeInOut, value: 10)
+                                
                             }
-                            .contentShape(Rectangle())
                             .listRowBackground(
                                 RoundedRectangle(cornerRadius: 20)
                                     .foregroundColor(Color(hex : "F7E9B5"))
                                     .padding(.vertical,10)
                             )
                             .listRowSeparator(.hidden)
-                            .onTapGesture {
-                                
-                            }
                         }
                     }
                     .padding(.horizontal, 20)
@@ -95,6 +118,7 @@ struct ContentView: View {
     }
     func addTodo(_t : String){
         toDos.append(_t)
+        UserDefaults.standard.set(toDos, forKey: "storedTodos")
     }
 }
 

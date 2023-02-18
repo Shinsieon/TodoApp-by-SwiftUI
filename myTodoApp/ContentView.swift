@@ -7,17 +7,29 @@
 
 import SwiftUI
 
+struct toDoStruct : Hashable{
+    let name : String
+    let key : String
+    let checked : Bool
+//    init(_name : String, _key : String, _checked : Bool){
+//        name = _name
+//        key = _key
+//        checked = _checked
+//    }
+}
+//= UserDefaults.standard.array(forKey: "storedTodos") as? [toDosStruct] ?? []
 struct ContentView: View {
     @State private var todoBtnOn:Bool = true
-    @State private var toDos = UserDefaults.standard.array(forKey: "storedTodos") as? [String] ?? []
+    @State private var toDos  = [toDoStruct]()
     @State private var doneTodos : [String] = []
     @State private var toDoText : String = ""
     @State private var presentAlert = false
     @GestureState private var isDetectingLongPress = false
+    @State private var checkBoxChecked = false
     
     var body: some View {
         ZStack{
-            Color(hex:"040403").ignoresSafeArea()
+            Color("todoBG").ignoresSafeArea()
             VStack{
                 HStack(alignment: .top){
                     Button("Todo", action:{
@@ -36,50 +48,45 @@ struct ContentView: View {
                     List {
                         ForEach(todoBtnOn ? toDos : doneTodos, id : \.self) { toDo in
                             HStack{
-                                Button(action:{
-                                    print(toDos.firstIndex(of: toDo)!)
-                                }){
-                                    Text(toDo)
-                                        .foregroundColor(Color(hex:"040403"))
-                                }
-                                .font(.system(size: 20))
-                                .frame(height: 90, alignment: .leading)
-                                .scaleEffect(isDetectingLongPress ? 2: 1)
-                                .animation(.spring(response:0.4, dampingFraction: 0.6))
-                                .gesture(
-                                    LongPressGesture(minimumDuration: 0.5)
-                                        .updating($isDetectingLongPress){currentState, gestureState, transaction in
-                                            gestureState = currentState
+                                Image(systemName: checkBoxChecked ? "app.badge.checkmark.fill" : "app.badge.checkmark")
+                                    .font(.system(size : 30))
+                                    .onTapGesture {
+                                        checkBoxChecked.toggle()
+                                    }
+                                    .foregroundColor(Color.white)
+                                Text(toDo.name)
+                                    .padding()
+                                    .font(.system(size: 20))
+                                    .frame(maxWidth: .infinity, maxHeight: 60, alignment: .leading)
+                                    .foregroundColor(Color("todoBG"))
+                                    .background(Color("todoItem"))
+                                    .cornerRadius(20)
+                                    .overlay(
+                                        HStack{
+                                            Image(systemName: "square.and.pencil")
+                                                 .font(.system(size : 25))
+                                                 .foregroundColor(Color("todoBG"))
+                                                 .shadow(color : .gray, radius: 0.2, x:1,y:1)
+                                                 .onTapGesture {
+                                                     print("modi")
+                                                 }
+                                            Image(systemName: "trash")
+                                                 .font(.system(size : 25))
+                                                 .foregroundColor(Color("todoBG"))
+                                                 .shadow(color : .gray, radius: 0.2, x:1,y:1)
+                                                 .onTapGesture {
+                                                     toDos.remove(at:toDos.firstIndex(of: toDo)!)
+                                                     UserDefaults.standard.set(toDos, forKey :"storedTodos")
+                                                 }
                                         }
-                                        .onEnded{ value in
-                                            print("fuck")
-                                        }
-                                )
-                                
-                                Spacer()
-                                Button(action:{
-                                    print("trash button")
-                                    toDos.remove(at:toDos.firstIndex(of: toDo)!)
-                                    UserDefaults.standard.set(toDos, forKey :"storedTodos")
-                                }){
-                                    Image(systemName: "trash")
-                                        .font(.system(size : 20))
-                                        .foregroundColor(Color(hex: "040403"))
-                                        .shadow(color : .gray, radius: 0.2, x:1,y:1)
-
-                                }
-                                .animation(.easeInOut, value: 10)
-                                
+                                        .padding()
+                                    ,alignment: .trailing)
                             }
-                            .listRowBackground(
-                                RoundedRectangle(cornerRadius: 20)
-                                    .foregroundColor(Color(hex : "F7E9B5"))
-                                    .padding(.vertical,10)
-                            )
-                            .listRowSeparator(.hidden)
                         }
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color("todoBG"))
                     }
-                    .padding(.horizontal, 20)
+                    .scrollContentBackground(.hidden)
                     .listStyle(PlainListStyle())
                 }else{
                     Text("Nothing to do")
@@ -90,7 +97,6 @@ struct ContentView: View {
                 }
                 Spacer()
             }
-            
             .padding(.bottom)
             Button(action:{
                 presentAlert.toggle()
@@ -98,7 +104,7 @@ struct ContentView: View {
             {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size : 80))
-                    .foregroundColor(Color(hex:"F9D869"))
+                    .foregroundColor(Color(hex:"F0F8FF"))
                     .shadow(color : .gray, radius: 0.2, x:1,y:1)
                     .padding()
             }
@@ -107,7 +113,7 @@ struct ContentView: View {
                 Button("Cancel", role: .cancel, action:{toDoText=""})
                 Button("OK", action:{
                     if(!toDos.contains(toDoText)) {
-                        addTodo(_t : toDoText)
+                        addTodo(_t : toDoStruct(name: toDoText, key: "232", checked: false))
                         toDoText=""
                     }else {toDoText = ""}
                 })
@@ -116,7 +122,7 @@ struct ContentView: View {
             
         }
     }
-    func addTodo(_t : String){
+    func addTodo(_t : toDoStruct){
         toDos.append(_t)
         UserDefaults.standard.set(toDos, forKey: "storedTodos")
     }
@@ -128,13 +134,14 @@ struct TopButtonStyle : ButtonStyle {
         configuration.label
             .padding()
             .font(.system(size: 25))
-            .foregroundColor(onTodo ? Color(hex:"040403") : Color(hex:"F9D869"))
-            .background(onTodo ? Color(hex: "F9D869") : Color(hex:"040403"))
+            .foregroundColor(onTodo ? Color("todoBG") : Color("todoItem"))
+            .background(onTodo ? Color("todoItem") : Color("todoBG"))
             .scaleEffect(configuration.isPressed ? 0.88 : 1.0)
             .clipShape(Capsule())
 
     }
 }
+
 extension Color {
   init(hex: String) {
     let scanner = Scanner(string: hex)

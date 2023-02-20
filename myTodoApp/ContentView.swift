@@ -7,25 +7,22 @@
 
 import SwiftUI
 
-struct toDoStruct : Hashable{
-    let name : String
-    let key : String
-    let checked : Bool
-//    init(_name : String, _key : String, _checked : Bool){
-//        name = _name
-//        key = _key
-//        checked = _checked
-//    }
+struct toDoStruct : Hashable, Codable{
+    var name : String
+    let key : Date
+    var done : Bool
 }
-//= UserDefaults.standard.array(forKey: "storedTodos") as? [toDosStruct] ?? []
+//=
 struct ContentView: View {
     @State private var todoBtnOn:Bool = true
-    @State private var toDos  = [toDoStruct]()
-    @State private var doneTodos : [String] = []
+    @State private var toDos : [toDoStruct] = []
+    @State private var UserDefaultsToDos = UserDefaults.standard.array(forKey: "storedTodos") as? [Data] ?? []
     @State private var toDoText : String = ""
+    @State private var modiText : String = ""
+    @State private var modiItem = toDoStruct(name: "temp", key: Date(), done: false)
     @State private var presentAlert = false
+    @State private var presentModiAlert = false
     @GestureState private var isDetectingLongPress = false
-    @State private var checkBoxChecked = false
     
     var body: some View {
         ZStack{
@@ -44,14 +41,14 @@ struct ContentView: View {
                     Spacer()
                 }
                 .padding()
-                if(!toDos.isEmpty){
+                if(!toDos.filter{$0.done != todoBtnOn}.isEmpty){
                     List {
-                        ForEach(todoBtnOn ? toDos : doneTodos, id : \.self) { toDo in
+                        ForEach(toDos.filter{$0.done != todoBtnOn}, id : \.self) {toDo in
                             HStack{
-                                Image(systemName: checkBoxChecked ? "app.badge.checkmark.fill" : "app.badge.checkmark")
+                                Image(systemName: toDo.done ? "app.badge.checkmark.fill" : "app.badge.checkmark")
                                     .font(.system(size : 30))
                                     .onTapGesture {
-                                        checkBoxChecked.toggle()
+                                        toDos[toDos.firstIndex(of: toDo)!].done.toggle()
                                     }
                                     .foregroundColor(Color.white)
                                 Text(toDo.name)
@@ -68,15 +65,15 @@ struct ContentView: View {
                                                  .foregroundColor(Color("todoBG"))
                                                  .shadow(color : .gray, radius: 0.2, x:1,y:1)
                                                  .onTapGesture {
-                                                     print("modi")
+                                                     modiItem = toDo
+                                                     presentModiAlert.toggle()
                                                  }
                                             Image(systemName: "trash")
                                                  .font(.system(size : 25))
                                                  .foregroundColor(Color("todoBG"))
                                                  .shadow(color : .gray, radius: 0.2, x:1,y:1)
                                                  .onTapGesture {
-                                                     toDos.remove(at:toDos.firstIndex(of: toDo)!)
-                                                     UserDefaults.standard.set(toDos, forKey :"storedTodos")
+                                                     deleteTodo(_t: toDo)
                                                  }
                                         }
                                         .padding()
@@ -89,7 +86,7 @@ struct ContentView: View {
                     .scrollContentBackground(.hidden)
                     .listStyle(PlainListStyle())
                 }else{
-                    Text("Nothing to do")
+                    Text(todoBtnOn ? "Nothing to do" : "Nothing Done")
                         .foregroundColor(Color.white)
                         .font(.system(size:30))
                         .frame(height : 500)
@@ -112,19 +109,66 @@ struct ContentView: View {
                 TextField("", text: $toDoText)
                 Button("Cancel", role: .cancel, action:{toDoText=""})
                 Button("OK", action:{
-                    if(!toDos.contains(toDoText)) {
-                        addTodo(_t : toDoStruct(name: toDoText, key: "232", checked: false))
+                    let item = toDoStruct(name: toDoText, key: Date(), done: false)
+                    if(!toDoText.isEmpty) {
+                        addTodo(_t : item)
                         toDoText=""
                     }else {toDoText = ""}
                 })
             })
+            .alert("할일 수정", isPresented: $presentModiAlert, actions:{
+                TextField(modiItem.name, text: $modiText)
+                Button("Cancel", role: .cancel, action:{modiText=""})
+                Button("OK", action:{
+                    if(!modiText.isEmpty) {
+                        toDos[toDos.firstIndex(of: modiItem)!].name = modiText
+                        modiText=""
+                    }
+                })
+            })
+            
             .frame(maxHeight: .infinity, alignment: .bottom)
             
         }
+        .onAppear(perform: {
+            let storedData = UserDefaults.standard.array(forKey: "storedTodos") as? [Data] ?? []
+            if(!storedData.isEmpty){
+                decodeStoredArray(data : storedData)
+            }
+            
+        })
     }
+    
     func addTodo(_t : toDoStruct){
         toDos.append(_t)
-        UserDefaults.standard.set(toDos, forKey: "storedTodos")
+        encodeStoredArray(data: toDos)
+    }
+    func encodeObject(st : toDoStruct) -> Data{
+        let encoder = JSONEncoder()
+        if let encoded = try? encoder.encode(st){
+            return encoded
+        }
+        else { return Data() }
+    }
+    func decodeStoredArray(data : [Data]){
+        let decoder = JSONDecoder()
+        for item in data{
+            if let savedObject = try? decoder.decode(toDoStruct.self, from: item) {
+                toDos.append(savedObject)
+            }
+        }
+    }
+    func deleteTodo(_t : toDoStruct){
+        toDos.remove(at:toDos.firstIndex(of: _t)!)
+        encodeStoredArray(data: toDos)
+    }
+    func encodeStoredArray(data : [toDoStruct]){
+        var tempUD : [Data] = []
+        for item in data{
+            let encoded = encodeObject(st: item)
+            tempUD.append(encoded)
+        }
+        UserDefaults.standard.set(tempUD, forKey: "storedTodos")
     }
 }
 

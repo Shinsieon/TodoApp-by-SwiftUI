@@ -1,4 +1,4 @@
-# myTodoApp
+# TODO APP
 
 SwiftUI로 만든 TODO App
 1. TODO add 기능
